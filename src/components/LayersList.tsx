@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { TextLayer } from '@/contexts/TextLayersContext';
+import { Button } from '@/foundations';
+import { MdKeyboardArrowUp, MdKeyboardArrowDown, MdClose } from 'react-icons/md';
 
 interface LayersListProps {
   layers: TextLayer[];
@@ -33,33 +35,37 @@ const LayersList: React.FC<LayersListProps> = ({
           <div className="flex justify-between items-center">
             <span className="font-medium">Text {index + 1}</span>
             <div className="flex space-x-1">
-              <button
+              <Button
                 onClick={(e) => {
                   e.stopPropagation();
                   onMoveLayerUp(layer.id);
                 }}
-                className="text-gray-500 hover:text-gray-700"
+                variant="icon"
+                size="sm"
               >
-                ↑
-              </button>
-              <button
+                <MdKeyboardArrowUp size={16} />
+              </Button>
+              <Button
                 onClick={(e) => {
                   e.stopPropagation();
                   onMoveLayerDown(layer.id);
                 }}
-                className="text-gray-500 hover:text-gray-700"
+                variant="icon"
+                size="sm"
               >
-                ↓
-              </button>
-              <button
+                <MdKeyboardArrowDown size={16} />
+              </Button>
+              <Button
                 onClick={(e) => {
                   e.stopPropagation();
                   onDeleteLayer(layer.id);
                 }}
+                variant="icon"
+                size="sm"
                 className="text-red-500 hover:text-red-700"
               >
-                ×
-              </button>
+                <MdClose size={16} />
+              </Button>
             </div>
           </div>
           <div className="text-sm text-gray-500 truncate">{layer.text}</div>
