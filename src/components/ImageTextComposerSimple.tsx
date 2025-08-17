@@ -86,6 +86,35 @@ const ImageTextComposerContent: React.FC = () => {
       selectLayer(null);
     });
 
+    canvas.on('object:moving', (e) => {
+      const activeObject = e.target;
+      if (activeObject && activeObject.type === 'text') {
+        const fabricObject = activeObject as fabric.Text & { layerId?: string };
+        const layerId = fabricObject.layerId;
+        if (layerId) {
+          updateTextLayer(layerId, { 
+            x: fabricObject.left || 0, 
+            y: fabricObject.top || 0 
+          });
+        }
+      }
+    });
+
+    canvas.on('object:modified', (e) => {
+      const activeObject = e.target;
+      if (activeObject && activeObject.type === 'text') {
+        const fabricObject = activeObject as fabric.Text & { layerId?: string };
+        const layerId = fabricObject.layerId;
+        if (layerId) {
+          updateTextLayer(layerId, { 
+            x: fabricObject.left || 0, 
+            y: fabricObject.top || 0,
+            rotation: fabricObject.angle || 0
+          });
+        }
+      }
+    });
+
     fabricCanvasRef.current = canvas;
 
     // If we have restored text layers, recreate them on the canvas
