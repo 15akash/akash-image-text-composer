@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button } from '@/foundations';
 
 interface CanvasAreaProps {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -20,24 +21,24 @@ const CanvasArea: React.FC<CanvasAreaProps> = ({
       </div>
       
       <div className="flex space-x-2">
-        <button
+        <Button
           onClick={onAddTextLayer}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+          variant="primary"
         >
           Add Text
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={onExportImage}
-          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+          variant="success"
         >
           Export PNG
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={onNewImage}
-          className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
+          variant="secondary"
         >
           New Image
-        </button>
+        </Button>
       </div>
     </div>
   );
