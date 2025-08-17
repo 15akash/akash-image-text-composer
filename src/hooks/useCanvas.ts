@@ -2,7 +2,7 @@
 
 import { useCallback, useRef } from 'react';
 import * as fabric from 'fabric';
-import { TextLayer } from '@/contexts/TextLayersContext';
+import type { TextLayer } from '@/types/textLayers';
 
 export const useCanvas = (externalFabricCanvasRef?: React.MutableRefObject<fabric.Canvas | null>) => {
   const internalFabricCanvasRef = useRef<fabric.Canvas | null>(null);
