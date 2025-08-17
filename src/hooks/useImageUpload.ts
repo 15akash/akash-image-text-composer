@@ -8,6 +8,7 @@ interface UseImageUploadReturn {
   getInputProps: () => DropzoneInputProps;
   isDragActive: boolean;
   resetImage: () => void;
+  setImageData: (imageUrl: string | null, dimensions: {width: number, height: number} | null) => void;
 }
 
 export const useImageUpload = (
@@ -48,12 +49,18 @@ export const useImageUpload = (
     setOriginalImageDimensions(null);
   }, []);
 
+  const setImageData = useCallback((imageUrl: string | null, dimensions: {width: number, height: number} | null) => {
+    setUploadedImage(imageUrl);
+    setOriginalImageDimensions(dimensions);
+  }, []);
+
   return {
     uploadedImage,
     originalImageDimensions,
     getRootProps,
     getInputProps,
     isDragActive,
-    resetImage
+    resetImage,
+    setImageData
   };
 };
