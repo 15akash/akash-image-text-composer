@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import { TextLayer } from '@/contexts/TextLayersContext';
 import { Button } from '@/foundations';
 import { MdKeyboardArrowUp, MdKeyboardArrowDown, MdClose } from 'react-icons/md';
+import type { TextLayer } from '@/types/textLayers';
 
 interface LayersListProps {
   layers: TextLayer[];

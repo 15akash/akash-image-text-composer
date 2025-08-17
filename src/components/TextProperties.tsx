@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { SketchPicker } from 'react-color';
-import { TextLayer } from '@/contexts/TextLayersContext';
 import { FONT_FAMILIES, FONT_WEIGHTS } from '@/utils/common';
 import { Label, Input, Select, Button, Textarea, Slider } from '@/foundations';
+import type { TextLayer } from '@/types/textLayers';
 
 interface TextPropertiesProps {
   layer: TextLayer;
