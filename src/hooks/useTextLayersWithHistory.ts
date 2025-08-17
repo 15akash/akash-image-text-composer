@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import * as fabric from 'fabric';
 import { useHistory } from './useHistory';
 import { useAutosave, useDebounceAutosave } from './useAutosave';
@@ -85,14 +85,6 @@ export const useTextLayersWithHistory = (
     saveToLocalStorage
   );
 
-  const updateProjectState = useCallback((updates: Partial<ProjectState>) => {
-    setProjectState({
-      ...projectState,
-      uploadedImage,
-      originalImageDimensions,
-      ...updates
-    });
-  }, [projectState, uploadedImage, originalImageDimensions, setProjectState]);
 
   const addTextLayer = useCallback((fabricCanvas: fabric.Canvas | null) => {
     if (!fabricCanvas) return;
@@ -125,24 +117,35 @@ export const useTextLayersWithHistory = (
     });
 
     (fabricText as fabric.Text & { layerId: string }).layerId = newLayerId;
-    newLayer.fabricObject = fabricText;
+    
+    // Store fabric object separately
+    fabricObjectsRef.current.set(newLayerId, fabricText);
 
     fabricCanvas.add(fabricText);
     fabricCanvas.setActiveObject(fabricText);
     fabricCanvas.renderAll();
 
-    updateProjectState({
-      textLayers: [...projectState.textLayers, newLayer]
+    // Don't store fabricObject in history state
+    const layerForHistory = { ...newLayer };
+    delete layerForHistory.fabricObject;
+
+    setProjectState({
+      ...projectState,
+      uploadedImage,
+      originalImageDimensions,
+      textLayers: [...projectState.textLayers, layerForHistory]
     });
-  }, [projectState.textLayers, updateProjectState]);
+  }, [setProjectState, projectState, uploadedImage, originalImageDimensions]);
 
   const updateTextLayer = useCallback((layerId: string, updates: Partial<TextLayer>, fabricCanvas: fabric.Canvas | null) => {
     const updatedLayers = projectState.textLayers.map(layer => {
       if (layer.id === layerId) {
         const updatedLayer = { ...layer, ...updates };
         
-        if (layer.fabricObject) {
-          layer.fabricObject.set({
+        // Get fabric object from separate storage
+        const fabricObject = fabricObjectsRef.current.get(layerId);
+        if (fabricObject) {
+          fabricObject.set({
             text: updatedLayer.text,
             fontFamily: updatedLayer.fontFamily,
             fontSize: updatedLayer.fontSize,
@@ -160,40 +163,59 @@ export const useTextLayersWithHistory = (
       return layer;
     });
 
-    updateProjectState({ textLayers: updatedLayers });
-  }, [projectState.textLayers, updateProjectState]);
+    setProjectState({
+      ...projectState,
+      uploadedImage,
+      originalImageDimensions,
+      textLayers: updatedLayers
+    });
+  }, [setProjectState, projectState, uploadedImage, originalImageDimensions]);
 
   const deleteTextLayer = useCallback((layerId: string, fabricCanvas: fabric.Canvas | null) => {
-    const layer = projectState.textLayers.find(l => l.id === layerId);
-    if (layer?.fabricObject && fabricCanvas) {
-      fabricCanvas.remove(layer.fabricObject);
+    // Get fabric object from separate storage
+    const fabricObject = fabricObjectsRef.current.get(layerId);
+    if (fabricObject && fabricCanvas) {
+      fabricCanvas.remove(fabricObject);
       fabricCanvas.renderAll();
+      // Remove from fabric objects storage
+      fabricObjectsRef.current.delete(layerId);
     }
     
-    updateProjectState({
+    setProjectState({
+      ...projectState,
+      uploadedImage,
+      originalImageDimensions,
       textLayers: projectState.textLayers.filter(l => l.id !== layerId)
     });
-  }, [projectState.textLayers, updateProjectState]);
+  }, [setProjectState, projectState, uploadedImage, originalImageDimensions]);
 
   const moveLayerUp = useCallback((layerId: string, fabricCanvas: fabric.Canvas | null) => {
-    const layer = projectState.textLayers.find(l => l.id === layerId);
-    if (layer?.fabricObject && fabricCanvas) {
-      fabricCanvas.bringObjectForward(layer.fabricObject);
+    const fabricObject = fabricObjectsRef.current.get(layerId);
+    if (fabricObject && fabricCanvas) {
+      fabricCanvas.bringObjectForward(fabricObject);
       fabricCanvas.renderAll();
     }
-  }, [projectState.textLayers]);
+  }, []);
 
   const moveLayerDown = useCallback((layerId: string, fabricCanvas: fabric.Canvas | null) => {
-    const layer = projectState.textLayers.find(l => l.id === layerId);
-    if (layer?.fabricObject && fabricCanvas) {
-      fabricCanvas.sendObjectBackwards(layer.fabricObject);
+    const fabricObject = fabricObjectsRef.current.get(layerId);
+    if (fabricObject && fabricCanvas) {
+      fabricCanvas.sendObjectBackwards(fabricObject);
       fabricCanvas.renderAll();
     }
-  }, [projectState.textLayers]);
+  }, []);
 
   const clearTextLayers = useCallback(() => {
-    updateProjectState({ textLayers: [] });
-  }, [updateProjectState]);
+    // Clear fabric objects storage
+    fabricObjectsRef.current.clear();
+    
+    setProjectState({
+      ...projectState,
+      uploadedImage,
+      originalImageDimensions,
+      textLayers: []
+    });
+  }, [setProjectState, projectState, uploadedImage, originalImageDimensions]);
 
   const loadProject = useCallback((newProjectState: ProjectState) => {
     setProjectState(newProjectState);
@@ -207,9 +229,18 @@ export const useTextLayersWithHistory = (
 
   // Track selected layer separately (not in history)
   const [selectedLayer, setSelectedLayer] = useState<string | null>(null);
+  
+  // Track fabric objects separately (not in history)
+  const fabricObjectsRef = useRef<Map<string, fabric.Text>>(new Map());
+
+  // Attach fabric objects to text layers for return
+  const textLayersWithFabric = projectState.textLayers.map(layer => ({
+    ...layer,
+    fabricObject: fabricObjectsRef.current.get(layer.id)
+  }));
 
   return {
-    textLayers: projectState.textLayers,
+    textLayers: textLayersWithFabric,
     selectedLayer,
     setSelectedLayer,
     addTextLayer,

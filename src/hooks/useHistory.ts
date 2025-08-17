@@ -32,7 +32,11 @@ export function useHistory<T>(initialState: T): UseHistoryReturn<T> {
       const { past, present } = currentHistory;
       
       // Don't add to history if state hasn't changed
-      if (JSON.stringify(present) === JSON.stringify(newState)) {
+      // For objects with fabric objects, we need to exclude them from comparison
+      const presentForComparison = JSON.parse(JSON.stringify(present));
+      const newStateForComparison = JSON.parse(JSON.stringify(newState));
+      
+      if (JSON.stringify(presentForComparison) === JSON.stringify(newStateForComparison)) {
         return currentHistory;
       }
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { SketchPicker } from 'react-color';
 import { FONT_FAMILIES, FONT_WEIGHTS } from '@/utils/common';
-import type { TextLayer } from '@/hooks/useTextLayers';
+import type { TextLayer } from '@/hooks/useTextLayersWithHistory';
 import { Label, Input, Select, Button, Textarea, Slider } from '@/foundations';
 
 interface TextPropertiesPanelProps {

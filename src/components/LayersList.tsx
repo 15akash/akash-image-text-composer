@@ -1,4 +1,4 @@
-import type { TextLayer } from '@/hooks/useTextLayers';
+import type { TextLayer } from '@/hooks/useTextLayersWithHistory';
 import React from 'react';
 
 interface LayersListProps {
