@@ -95,22 +95,23 @@ const ImageTextComposerContent: React.FC = () => {
             }
           }, 200);
         }
-      } else if (state.textLayers.length > 0) {
-        // Only recreate text objects if fabric objects are missing (after restore)
-        const needsRecreation = state.textLayers.some(layer => !layer.fabricObject);
-        if (needsRecreation) {
-          // Wait a bit to ensure canvas is fully ready
-          const timer = setTimeout(() => {
-            if (fabricCanvasRef.current) {
-              recreateFabricObjects(fabricCanvasRef.current, state.textLayers);
-            }
-          }, 100);
-          
-          return () => clearTimeout(timer);
-        }
       }
     }
-  }, [state.uploadedImage, state.originalImageDimensions, state.textLayers, fabricCanvasRef, recreateFabricObjects, initializeCanvas, selectLayer, updateTextLayer]);
+  }, [state.uploadedImage, state.originalImageDimensions, initializeCanvas, selectLayer, updateTextLayer, recreateFabricObjects]);
+
+  // Effect to handle fabric object recreation when explicitly requested (undo/redo)
+  useEffect(() => {
+    if (state.needsFabricRecreation && fabricCanvasRef.current && state.textLayers.length > 0 && state.uploadedImage) {
+      // Wait a bit to ensure canvas is ready and state is stable
+      const timer = setTimeout(() => {
+        if (fabricCanvasRef.current) {
+          recreateFabricObjects(fabricCanvasRef.current, state.textLayers);
+        }
+      }, 50);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [state.needsFabricRecreation, state.textLayers, state.uploadedImage, fabricCanvasRef, recreateFabricObjects]);
 
 
   const selectedLayerData = state.textLayers.find(layer => layer.id === state.selectedLayer);

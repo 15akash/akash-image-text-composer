@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useReducer, useRef, useCallback, useEffect, useState } from 'react';
 import * as fabric from 'fabric';
+import { useDebounce } from '@/hooks/useDebounce';
 
 export interface TextLayer {
   id: string;
@@ -25,6 +26,7 @@ interface State {
   historyIndex: number;
   uploadedImage: string | null;
   originalImageDimensions: {width: number, height: number} | null;
+  needsFabricRecreation: boolean;
 }
 
 interface SavedProject {
@@ -40,6 +42,7 @@ const AUTOSAVE_DELAY = 2000; // 2 seconds
 type Action = 
   | { type: 'ADD_TEXT_LAYER'; layer: TextLayer }
   | { type: 'UPDATE_TEXT_LAYER'; layerId: string; updates: Partial<TextLayer> }
+  | { type: 'UPDATE_TEXT_LAYER_IMMEDIATE'; layerId: string; updates: Partial<TextLayer> }
   | { type: 'DELETE_TEXT_LAYER'; layerId: string }
   | { type: 'SELECT_LAYER'; layerId: string | null }
   | { type: 'CLEAR_LAYERS' }
@@ -49,7 +52,8 @@ type Action =
   | { type: 'SAVE_TO_HISTORY' }
   | { type: 'RESTORE_PROJECT'; project: SavedProject }
   | { type: 'RESET_PROJECT' }
-  | { type: 'UPDATE_FABRIC_OBJECTS'; layers: TextLayer[] };
+  | { type: 'UPDATE_FABRIC_OBJECTS'; layers: TextLayer[] }
+  | { type: 'FORCE_FABRIC_RECREATION' };
 
 const initialState: State = {
   textLayers: [],
@@ -57,7 +61,8 @@ const initialState: State = {
   history: [[]],
   historyIndex: 0,
   uploadedImage: null,
-  originalImageDimensions: null
+  originalImageDimensions: null,
+  needsFabricRecreation: false
 };
 
 function textLayersReducer(state: State, action: Action): State {
@@ -81,6 +86,16 @@ function textLayersReducer(state: State, action: Action): State {
         textLayers: updatedLayers,
         history: [...state.history.slice(0, state.historyIndex + 1), updatedLayers],
         historyIndex: state.historyIndex + 1
+      };
+
+    case 'UPDATE_TEXT_LAYER_IMMEDIATE':
+      const immediateUpdatedLayers = state.textLayers.map(layer => 
+        layer.id === action.layerId ? { ...layer, ...action.updates } : layer
+      );
+      return {
+        ...state,
+        textLayers: immediateUpdatedLayers
+        // Note: No history update here - that will be handled by debounced function
       };
 
     case 'DELETE_TEXT_LAYER':
@@ -122,7 +137,8 @@ function textLayersReducer(state: State, action: Action): State {
           ...state,
           textLayers: state.history[newIndex],
           historyIndex: newIndex,
-          selectedLayer: null
+          selectedLayer: null,
+          needsFabricRecreation: true
         };
       }
       return state;
@@ -134,10 +150,18 @@ function textLayersReducer(state: State, action: Action): State {
           ...state,
           textLayers: state.history[newIndex],
           historyIndex: newIndex,
-          selectedLayer: null
+          selectedLayer: null,
+          needsFabricRecreation: true
         };
       }
       return state;
+
+    case 'SAVE_TO_HISTORY':
+      return {
+        ...state,
+        history: [...state.history.slice(0, state.historyIndex + 1), state.textLayers],
+        historyIndex: state.historyIndex + 1
+      };
 
     case 'RESTORE_PROJECT':
       return {
@@ -160,7 +184,14 @@ function textLayersReducer(state: State, action: Action): State {
     case 'UPDATE_FABRIC_OBJECTS':
       return {
         ...state,
-        textLayers: action.layers
+        textLayers: action.layers,
+        needsFabricRecreation: false
+      };
+
+    case 'FORCE_FABRIC_RECREATION':
+      return {
+        ...state,
+        needsFabricRecreation: true
       };
 
     default:
@@ -249,6 +280,7 @@ export const TextLayersProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [state, dispatch] = useReducer(textLayersReducer, initialState);
   const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
   const [, setHasAutoSaved] = useState(false);
+  const pendingUpdatesRef = useRef<Set<string>>(new Set());
 
   const addTextLayer = useCallback(() => {
     if (!fabricCanvasRef.current) return;
@@ -306,8 +338,25 @@ export const TextLayersProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       });
       fabricCanvasRef.current?.renderAll();
     }
-    dispatch({ type: 'UPDATE_TEXT_LAYER', layerId, updates });
+    
+    // Use immediate update for real-time changes
+    dispatch({ type: 'UPDATE_TEXT_LAYER_IMMEDIATE', layerId, updates });
+    
+    // Track that this layer has pending updates for history
+    pendingUpdatesRef.current.add(layerId);
   }, [state.textLayers]);
+
+  // Debounced function to save history after user stops typing
+  useDebounce(
+    () => {
+      if (pendingUpdatesRef.current.size > 0) {
+        dispatch({ type: 'SAVE_TO_HISTORY' });
+        pendingUpdatesRef.current.clear();
+      }
+    },
+    300, // 300ms delay
+    [state.textLayers] // Dependencies
+  );
 
   const deleteTextLayer = useCallback((layerId: string) => {
     const layer = state.textLayers.find(l => l.id === layerId);
