@@ -125,7 +125,7 @@ src/
    - Automatic restoration on page refresh
 
 2. **Rich Text Editing**
-   - Font family selection (5+ fonts)
+   - Font family selection (20+ fonts)
    - Font weight options (normal, bold, etc.)
    - Color picker with hex values
    - Opacity slider with real-time preview
