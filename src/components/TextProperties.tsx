@@ -3,6 +3,7 @@
 import React from 'react';
 import { SketchPicker } from 'react-color';
 import { FONT_FAMILIES, FONT_WEIGHTS } from '@/utils/common';
+import { loadGoogleFont } from '@/utils/fonts';
 import { Label, Input, Select, Button, Textarea, Slider } from '@/foundations';
 import type { TextLayer } from '@/types/textLayers';
 
@@ -32,7 +33,12 @@ const TextProperties: React.FC<TextPropertiesProps> = ({ layer, onUpdate }) => {
         <Label>Font Family</Label>
         <Select
           value={layer.fontFamily}
-          onChange={(e) => onUpdate({ fontFamily: e.target.value })}
+          onChange={(e) => {
+            const fontFamily = e.target.value;
+            // Load Google Font if it's not a system font
+            loadGoogleFont(fontFamily);
+            onUpdate({ fontFamily });
+          }}
           options={FONT_FAMILIES}
         />
       </div>
